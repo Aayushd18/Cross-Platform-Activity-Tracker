@@ -1,31 +1,24 @@
-import React, { useState, useEffect } from 'react';
-import RedditIcon from '@mui/icons-material/Reddit';
+import { useState } from 'react';
+import dayjs from 'dayjs';
 import { useSearchParams } from 'react-router-dom';
-import Grid from '@mui/material/Grid';
-import Typography from '@mui/material/Typography';
+import { Grid, Typography } from '@mui/material';
+import { AppsRounded } from '@mui/icons-material';
+
 import { ActivityHistogram } from '../components/ActivityHistogram';
 import { durationToString } from '../utils';
 import { DatePicker } from '../components/DatePicker';
+import { useAppUsage } from '../api';
+import { features } from '../config';
 
 export const AppUsagePage = () => {
 	const [query] = useSearchParams();
 	const appName = query.get('name');
+	const [date, setDate] = useState(dayjs);
 
 	const timeRemaining = 0;
-	const [data, setData] = useState([]);
+	const data = useAppUsage(appName).data;
 
-	const onDateChange = newDate => {
-		console.log(newDate);
-	};
-
-	useEffect(() => {
-		fetch(`http://localhost:3000/api/apps/usage?name=${query.get('name')}`)
-			.then(res => res.json())
-			.then(res => {
-				setData(res);
-			});
-	}, [appName]);
-
+	if (!data) return null;
 	return (
 		<Grid
 			container
@@ -43,58 +36,42 @@ export const AppUsagePage = () => {
 					alignItems="center"
 				>
 					<Grid item>
-						<RedditIcon
-							style={{ fontSize: 50, color: 'white', marginRight: 10 }}
-						/>
+						<AppsRounded style={{ fontSize: 50 }} />
 					</Grid>
 					<Grid item>
-						<Typography variant="h6" className="top-app-details">
-							{appName}
-						</Typography>
+						<Typography variant="h6">{appName}</Typography>
 					</Grid>
 				</Grid>
 			</Grid>
-			<Grid item>
-				<Typography
-					variant="h6"
-					color="initial"
-					className="top-app-heading"
-					align="center"
-				>
-					Today
-				</Typography>
-				<Typography
-					variant="h6"
-					color="initial"
-					className="top-app-heading"
-					align="center"
-				>
-					{durationToString(data[data.length - 1]?.duration)}
-				</Typography>
-				<Typography
-					variant="body2"
-					color="initial"
-					className="top-app-heading"
-					align="center"
-				>
-					{durationToString(timeRemaining)}{' '}
-					{timeRemaining > 0 ? 'past limit' : 'remaining'}
-				</Typography>
-			</Grid>
+			{features.timeLimit && (
+				<Grid item>
+					<Typography variant="h6" align="center">
+						Today
+					</Typography>
+					<Typography variant="h6" align="center">
+						{durationToString(data[data.length - 1]?.duration)}
+					</Typography>
+					<Typography variant="body2" align="center">
+						{durationToString(timeRemaining)}{' '}
+						{timeRemaining > 0 ? 'past limit' : 'remaining'}
+					</Typography>
+				</Grid>
+			)}
 
 			<Grid item>
-				<Typography variant="h4" color="initial">
+				<Typography variant="h4" color="black">
 					<ActivityHistogram
 						data={data?.map(weekDay => weekDay.duration)}
-						name="Brave"
+						name={appName}
 					/>
 				</Typography>
 			</Grid>
 			<Grid item>
-				<DatePicker onChange={onDateChange} />
-			</Grid>
-			<Grid item>
-				<DatePicker onChange={onDateChange} />
+				<DatePicker
+					label="Date"
+					value={date}
+					onChange={newDate => setDate(newDate)}
+				/>
 			</Grid>
 		</Grid>
 	);
